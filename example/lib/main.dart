@@ -40,8 +40,9 @@ class _MyAppState extends State<MyApp> {
     double initVolume;
     double maxVolume;
     try {
-      initVolume = await VolumeWatcher.getCurrentVolume;
-      maxVolume = await VolumeWatcher.getMaxVolume;
+      initVolume =
+          await VolumeWatcher.getCurrentVolume(AudioManager.STREAM_MUSIC);
+      maxVolume = await VolumeWatcher.getMaxVolume(AudioManager.STREAM_MUSIC);
     } on PlatformException {
       platformVersion = 'Failed to get volume.';
     }
@@ -81,16 +82,18 @@ class _MyAppState extends State<MyApp> {
                 Text("初始音量=${initVolume}"),
                 Text("当前音量=${currentVolume}"),
                 RaisedButton(
-                  onPressed: (){
-                    VolumeWatcher.setVolume(maxVolume*0.5);
+                  onPressed: () {
+                    VolumeWatcher.setVolume(
+                        AudioManager.STREAM_MUSIC, maxVolume * 0.5);
                   },
-                  child: Text("设置音量为${maxVolume*0.5}"),
+                  child: Text("设置音量为${maxVolume * 0.5}"),
                 ),
                 RaisedButton(
-                  onPressed: (){
-                    VolumeWatcher.setVolume(maxVolume*0.0);
+                  onPressed: () {
+                    VolumeWatcher.setVolume(
+                        AudioManager.STREAM_MUSIC, maxVolume * 0.0);
                   },
-                  child: Text("设置音量为${maxVolume*0.0}"),
+                  child: Text("设置音量为${maxVolume * 0.0}"),
                 )
               ]),
         ),

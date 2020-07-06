@@ -17,7 +17,8 @@ import io.flutter.plugin.common.PluginRegistry;
 /*
  * 系统音量监听
  */
-public class VolumeWatcherPlugin implements FlutterPlugin, StreamHandler, MethodCallHandler, VolumeChangeObserver.VolumeChangeListener {
+public class VolumeWatcherPlugin
+        implements FlutterPlugin, StreamHandler, MethodCallHandler, VolumeChangeObserver.VolumeChangeListener {
     private VolumeChangeObserver mVolumeChangeObserver;
     private EventChannel.EventSink eventSink;
     private MethodChannel methodChannel;
@@ -32,17 +33,18 @@ public class VolumeWatcherPlugin implements FlutterPlugin, StreamHandler, Method
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-        this.onAttachedToEngine(flutterPluginBinding.getApplicationContext(), flutterPluginBinding.getBinaryMessenger());
+        this.onAttachedToEngine(flutterPluginBinding.getApplicationContext(),
+                flutterPluginBinding.getBinaryMessenger());
     }
 
     private void onAttachedToEngine(Context applicationContext, BinaryMessenger messenger) {
         mVolumeChangeObserver = new VolumeChangeObserver(applicationContext);
 
-        //method chanel
+        // method chanel
         methodChannel = new MethodChannel(messenger, CHANNEL + "_method");
         methodChannel.setMethodCallHandler(this);
 
-        //event channel
+        // event channel
         eventChannel = new EventChannel(messenger, CHANNEL + "_event");
         eventChannel.setStreamHandler(this);
     }
@@ -61,14 +63,17 @@ public class VolumeWatcherPlugin implements FlutterPlugin, StreamHandler, Method
         if (call.method.equals("getPlatformVersion")) {
             result.success("Android " + android.os.Build.VERSION.RELEASE);
         } else if (call.method.equals("getMaxVolume")) {
-            result.success(mVolumeChangeObserver.getMaxMusicVolume());
+            int streamType = Integer.parseInt(call.argument("streamType").toString());
+            result.success(mVolumeChangeObserver.getMaxMusicVolume(streamType));
         } else if (call.method.equals("getCurrentVolume")) {
-            result.success(mVolumeChangeObserver.getCurrentMusicVolume());
+            int streamType = Integer.parseInt(call.argument("streamType").toString());
+            result.success(mVolumeChangeObserver.getCurrentMusicVolume(streamType));
         } else if (call.method.equals("setVolume")) {
             boolean success = true;
             try {
+                int streamType = Integer.parseInt(call.argument("streamType").toString());
                 double volumeValue = Double.parseDouble(call.argument("volume").toString());
-                mVolumeChangeObserver.setVolume(volumeValue);
+                mVolumeChangeObserver.setVolume(streamType, volumeValue);
             } catch (Exception ex) {
                 success = false;
             }
@@ -80,18 +85,18 @@ public class VolumeWatcherPlugin implements FlutterPlugin, StreamHandler, Method
 
     @Override
     public void onListen(Object arguments, EventChannel.EventSink eventSink) {
-        //初始化通知
+        // 初始化通知
         this.eventSink = eventSink;
-        //绑定监听
+        // 绑定监听
         mVolumeChangeObserver.setVolumeChangeListener(this);
 
-        //初始化返回当前音量
+        // 初始化返回当前音量
         if (eventSink != null) {
-            double volume = mVolumeChangeObserver.getCurrentMusicVolume();
+            double volume = mVolumeChangeObserver.getCurrentMusicVolume(4);
             eventSink.success(volume);
         }
 
-        //注册监听器
+        // 注册监听器
         mVolumeChangeObserver.registerReceiver();
     }
 

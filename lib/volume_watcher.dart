@@ -5,6 +5,26 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
+enum AudioManager {
+  /// Controls the Voice Call volume
+  STREAM_VOICE_CALL,
+
+  /// Controls the system volume
+  STREAM_SYSTEM,
+
+  /// Controls the ringer volume
+  STREAM_RING,
+
+  /// Controls the media volume
+  STREAM_MUSIC,
+
+  // Controls the alarm volume
+  STREAM_ALARM,
+
+  /// Controls the notification volume
+  STREAM_NOTIFICATION,
+}
+
 class VolumeWatcher extends StatefulWidget {
   final Function(double) onVolumeChangeListener;
   final Widget child;
@@ -17,10 +37,13 @@ class VolumeWatcher extends StatefulWidget {
     assert(this.onVolumeChangeListener != null);
   }
 
-  static const MethodChannel methodChannel = const MethodChannel('volume_watcher_method');
-  static const EventChannel eventChannel = const EventChannel('volume_watcher_event');
+  static const MethodChannel methodChannel =
+      const MethodChannel('volume_watcher_method');
+  static const EventChannel eventChannel =
+      const EventChannel('volume_watcher_event');
   static StreamSubscription _subscription;
   static Map<int, Function> _events = {};
+  static AudioManager _audioManager;
 
   /*
    * event channel回调
@@ -45,12 +68,14 @@ class VolumeWatcher extends StatefulWidget {
   static int addListener(Function onEvent) {
     if (_subscription == null) {
       //event channel 注册
-      _subscription = eventChannel.receiveBroadcastStream('init').listen(_onEvent, onError: _onError);
+      _subscription = eventChannel
+          .receiveBroadcastStream('init')
+          .listen(_onEvent, onError: _onError);
     }
 
     if (onEvent != null) {
       _events[onEvent.hashCode] = onEvent;
-      getCurrentVolume.then((value) {
+      getCurrentVolume(_audioManager).then((value) {
         onEvent(value);
       });
       return onEvent.hashCode;
@@ -71,31 +96,47 @@ class VolumeWatcher extends StatefulWidget {
   }
 
   static Future<String> get platformVersion async {
-    final String version = await methodChannel.invokeMethod('getPlatformVersion');
+    final String version =
+        await methodChannel.invokeMethod('getPlatformVersion');
     return version;
   }
 
   /*
    * 获取当前系统最大音量
    */
-  static Future<double> get getMaxVolume async {
-    final double maxVolume = await methodChannel.invokeMethod('getMaxVolume', {});
+  static Future<double> getMaxVolume(AudioManager audioManager) async {
+    _audioManager = audioManager;
+    Map<String, int> map = <String, int>{};
+    map.putIfAbsent("streamType", () {
+      return _getInt(audioManager);
+    });
+    final double maxVolume =
+        await methodChannel.invokeMethod('getMaxVolume', map);
     return maxVolume;
   }
 
   /*
    * 获取当前系统音量
    */
-  static Future<double> get getCurrentVolume async {
-    final double currentVolume = await methodChannel.invokeMethod('getCurrentVolume', {});
+  static Future<double> getCurrentVolume(AudioManager audioManager) async {
+    _audioManager = audioManager;
+    Map<String, int> map = <String, int>{};
+    map.putIfAbsent("streamType", () {
+      return _getInt(audioManager);
+    });
+    final double currentVolume =
+        await methodChannel.invokeMethod('getCurrentVolume', map);
     return currentVolume;
   }
 
   /*
    * 设置系统音量
    */
-  static Future<bool> setVolume(double volume) async {
-    final bool success = await methodChannel.invokeMethod('setVolume', {'volume': volume});
+  static Future<bool> setVolume(
+      AudioManager audioManager, double volume) async {
+    _audioManager = audioManager;
+    final bool success = await methodChannel.invokeMethod(
+        'setVolume', {'streamType': _getInt(audioManager), 'volume': volume});
     return success;
   }
 
@@ -129,5 +170,24 @@ class VolumeState extends State<VolumeWatcher> {
   @override
   Widget build(BuildContext context) {
     return widget.child ?? SizedBox();
+  }
+}
+
+int _getInt(AudioManager audioManager) {
+  switch (audioManager) {
+    case AudioManager.STREAM_VOICE_CALL:
+      return 0;
+    case AudioManager.STREAM_SYSTEM:
+      return 1;
+    case AudioManager.STREAM_RING:
+      return 2;
+    case AudioManager.STREAM_MUSIC:
+      return 3;
+    case AudioManager.STREAM_ALARM:
+      return 4;
+    case AudioManager.STREAM_NOTIFICATION:
+      return 5;
+    default:
+      return null;
   }
 }

@@ -44,8 +44,8 @@ public class VolumeChangeObserver {
      *
      * @return
      */
-    public double getCurrentMusicVolume() {
-        int currentVolume = mAudioManager != null ? mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC) : -1;
+    public double getCurrentMusicVolume(int streamType) {
+        int currentVolume = mAudioManager != null ? mAudioManager.getStreamVolume(streamType) : -1;
         return currentVolume / mMaxVolume;
     }
 
@@ -54,15 +54,16 @@ public class VolumeChangeObserver {
      *
      * @return
      */
-    public double getMaxMusicVolume() {
+    public double getMaxMusicVolume(int streamType) {
         return 1.0d;
     }
 
     /**
      * 设置音量
+     * 
      * @param value
      */
-    public void setVolume(double value){
+    public void setVolume(int streamType, double value) {
         double actualValue;
         if (value > 1.0) {
             actualValue = 1.0;
@@ -72,17 +73,17 @@ public class VolumeChangeObserver {
             actualValue = value;
         }
 
-        int volume = (int)Math.round(actualValue * mMaxVolume);
-        if(mAudioManager != null){
-            try{
+        int volume = (int) Math.round(actualValue * mMaxVolume);
+        if (mAudioManager != null) {
+            try {
                 // 设置音量
-                mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
-                if(volume<1){
-                    mAudioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER,  0);
+                mAudioManager.setStreamVolume(streamType, volume, 0);
+                if (volume < 1) {
+                    mAudioManager.adjustStreamVolume(streamType, AudioManager.ADJUST_LOWER, 0);
                 }
-            }catch (Exception ex){
-                //禁止日志
-                Log.d(TAG, "setVolume Exception:" + ex.getMessage());
+            } catch (Exception ex) {
+                // 禁止日志
+                //Log.d(TAG, "setVolume Exception:" + ex.getMessage());
             }
         }
     }
@@ -123,7 +124,7 @@ public class VolumeChangeObserver {
         }
     }
 
-    //监听音量改变
+    // 监听音量改变
     private static class VolumeBroadcastReceiver extends BroadcastReceiver {
         private WeakReference<VolumeChangeObserver> mObserverWeakReference;
 
@@ -133,13 +134,14 @@ public class VolumeChangeObserver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            //媒体音量改变才通知
-            if (VOLUME_CHANGED_ACTION.equals(intent.getAction()) && (intent.getIntExtra(EXTRA_VOLUME_STREAM_TYPE, -1) == AudioManager.STREAM_MUSIC)) {
+            // 媒体音量改变才通知
+            if (VOLUME_CHANGED_ACTION.equals(intent.getAction())
+                    && (intent.getIntExtra(EXTRA_VOLUME_STREAM_TYPE, -1) == AudioManager.STREAM_MUSIC)) {
                 VolumeChangeObserver observer = mObserverWeakReference.get();
                 if (observer != null) {
                     VolumeChangeListener listener = observer.getVolumeChangeListener();
                     if (listener != null) {
-                        double volume = observer.getCurrentMusicVolume();
+                        double volume = observer.getCurrentMusicVolume(4);
                         if (volume >= 0) {
                             listener.onVolumeChanged(volume);
                         }
