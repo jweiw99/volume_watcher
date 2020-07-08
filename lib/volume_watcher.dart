@@ -75,9 +75,14 @@ class VolumeWatcher extends StatefulWidget {
 
     if (onEvent != null) {
       _events[onEvent.hashCode] = onEvent;
-      getCurrentVolume(_audioManager).then((value) {
-        onEvent(value);
-      });
+      if (!Platform.isIOS)
+        getCurrentVolume(_audioManager).then((value) {
+          onEvent(value);
+        });
+      else
+        getIosCurrentVolume.then((value) {
+          onEvent(value);
+        });
       return onEvent.hashCode;
     }
     return null;
@@ -114,6 +119,12 @@ class VolumeWatcher extends StatefulWidget {
         await methodChannel.invokeMethod('getMaxVolume', map);
     return maxVolume;
   }
+  
+  static Future<double> get getIosMaxVolume async {
+    final double maxVolume =
+        await methodChannel.invokeMethod('getMaxVolume', {});
+    return maxVolume;
+  }
 
   /*
    * 获取当前系统音量
@@ -128,6 +139,12 @@ class VolumeWatcher extends StatefulWidget {
         await methodChannel.invokeMethod('getCurrentVolume', map);
     return currentVolume;
   }
+  
+  static Future<double> get getIosCurrentVolume async {
+    final double currentVolume =
+        await methodChannel.invokeMethod('getCurrentVolume', {});
+    return currentVolume;
+  }
 
   /*
    * 设置系统音量
@@ -137,6 +154,12 @@ class VolumeWatcher extends StatefulWidget {
     _audioManager = audioManager;
     final bool success = await methodChannel.invokeMethod(
         'setVolume', {'streamType': _getInt(audioManager), 'volume': volume});
+    return success;
+  }
+
+  static Future<bool> setIosVolume(double volume) async {
+    final bool success = await methodChannel.invokeMethod(
+        'setVolume', {'volume': volume});
     return success;
   }
 
